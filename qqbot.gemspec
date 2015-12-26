@@ -5,12 +5,12 @@ require 'qqbot/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "qqbot"
-  spec.version       = Qqbot::VERSION
+  spec.version       = QQBot::VERSION
   spec.authors       = ["ScienJus"]
   spec.email         = ["i@scienjus.com"]
 
-  spec.summary       = %q{TODO: a qq bot based on smart qq(web qq).}
-  spec.description   = %q{TODO: miao miao miao miao?.}
+  spec.summary       = %q{a qq bot based on smart qq(web qq).}
+  spec.description   = %q{miao miao miao miao?}
   spec.homepage      = "https://github.com/ScienJus/qqbot"
   spec.license       = "MIT"
 
