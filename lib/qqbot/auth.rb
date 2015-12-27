@@ -1,17 +1,17 @@
-require 'net/http'
 require 'uri'
 require 'json'
 require "fileutils"
-require 'openssl'
 require 'logger'
-require_relative 'cookie'
+require_relative 'client'
 
 
 module QQBot
   class Auth
     @@logger = Logger.new(STDOUT)
 
-    @@user_agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36';
+    def initialize
+      @client = QQBot::Client.new
+    end
 
     def login
       get_qrcode
@@ -52,42 +52,27 @@ module QQBot
           t: 0.1,
         )
 
-      Net::HTTP.start(uri.host, uri.port,
-        use_ssl: uri.scheme == 'https',
-        verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      code, body = @client.get uri
 
-        req = Net::HTTP::Get.new uri
+      if code == '200'
+        file_name = File.expand_path('qrcode.png', File.dirname(__FILE__));
 
-        req.initialize_http_header(
-          'User-Agent' => @@user_agent
-        )
-
-        res = http.request req
-
-        if res.is_a? Net::HTTPSuccess
-
-          @cookie = QQBot::Cookie.new
-
-          @cookie.put res.get_fields('set-cookie')
-
-          file_name = File.expand_path('qrcode.png', File.dirname(__FILE__));
-
-          File.open(file_name, 'wb') do |file|
-            file.write res.body
-            file.close
-          end
-
-          @@logger.info "二维码已经保存在#{file_name}中"
-
-          if @pid == nil
-            @@logger.info '开启web服务进程'
-
-            @pid = spawn "ruby -run -e httpd #{file_name} -p 9090"
-          end
-
-          @@logger.info '也可以通过访问 http://localhost:9090 查看二维码'
+        File.open(file_name, 'wb') do |file|
+          file.write body
+          file.close
         end
 
+        @@logger.info "二维码已经保存在#{file_name}中"
+
+        if @pid == nil
+          @@logger.info '开启web服务进程'
+
+          @pid = spawn "ruby -run -e httpd #{file_name} -p 9090"
+        end
+
+        @@logger.info '也可以通过访问 http://localhost:9090 查看二维码'
+      else
+        @@logger.info "请求失败，返回码#{code}"
       end
     end
 
@@ -119,38 +104,26 @@ module QQBot
           pt_randsalt: 0,
         )
 
-      Net::HTTP.start(uri.host, uri.port,
-        use_ssl: uri.scheme == 'https',
-        verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      code, body = @client.get uri
 
-        req = Net::HTTP::Get.new uri
-
-        req.initialize_http_header(
-          'User-Agent' => @@user_agent,
-          'Cookie' => @cookie.to_s
-        )
-
-        res = http.request req
-
-        if res.is_a? Net::HTTPSuccess
-
-          @cookie.put res.get_fields('set-cookie')
-
-          array = res.body.force_encoding("UTF-8").split("','");
-
-          array.each do |result|
-            if result.start_with? '二维码已失效'
-              @@logger.info '二维码已失效，请重新获取'
-              return '-1'
-            elsif result.start_with? 'http'
-              @@logger.info '认证成功'
-              @@logger.info '关闭web服务进程'
-              system "kill -9 #{@pid}"
-              return result
-            end
+      if code == '200'
+        result = body.force_encoding("UTF-8")
+        if result.include? '二维码已失效'
+          @@logger.info '二维码已失效，请重新获取'
+          return '-1'
+        elsif result.include? 'http'
+          @@logger.info '认证成功'
+          unless @pid == nil
+            @@logger.info '关闭web服务进程'
+            system "kill -9 #{@pid}"
           end
+          return URI.extract(result)[0]
+        else
           return '0'
         end
+      else
+        @@logger.info "请求失败，返回码#{code}"
+        return '0'
       end
     end
 
@@ -159,26 +132,12 @@ module QQBot
 
       uri = URI(url);
 
-      Net::HTTP.start(uri.host, uri.port,
-        use_ssl: uri.scheme == 'https',
-        verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
 
-        req = Net::HTTP::Get.new uri
-
-        req.initialize_http_header(
-          'User-Agent' => @@user_agent,
-          'Cookie' => @cookie.to_s,
-          'Referer' => 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1'
-        )
-
-        res = http.request req
-
-        if res.code == '302'
-          @cookie.put res.get_fields('set-cookie')
-          @ptwebqq = @cookie['ptwebqq']
-        else
-          @@logger.info '获取ptwebqq失败'
-        end
+      if code == '302'
+        @ptwebqq = @client.get_cookie 'ptwebqq'
+      else
+        @@logger.info "请求失败，返回码#{code}"
       end
     end
 
@@ -195,27 +154,17 @@ module QQBot
           t: 0.1,
         )
 
-      Net::HTTP.start(uri.host, uri.port,
-        use_ssl: uri.scheme == 'https',
-        verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
 
-        req = Net::HTTP::Get.new uri
-
-        req.initialize_http_header(
-          'User-Agent' => @@user_agent,
-          'Cookie' => @cookie.to_s,
-          'Referer' => 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1'
-        )
-
-        res = http.request req
-
-        if (res.is_a? Net::HTTPSuccess) && (json = JSON.parse(res.body)) && (json['retcode'] == 0)
-          @cookie.put res.get_fields('set-cookie')
+      if code == '200'
+        json = JSON.parse body
+        if json['retcode'] == 0
           @vfwebqq = json['result']['vfwebqq']
         else
-          @@logger.info '获取vfwebqq失败'
+          @@logger.info "获取vfwebqq失败 返回码 #{json['retcode']}"
         end
-
+      else
+        @@logger.info "请求失败，返回码#{code}"
       end
     end
 
@@ -231,33 +180,19 @@ module QQBot
         status: 'online'
       )
 
-      Net::HTTP.start(uri.host, uri.port,
-        use_ssl: uri.scheme == 'https',
-        verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
 
-        req = Net::HTTP::Post.new uri
 
-        req.set_form_data(
-          r: r
-        )
-
-        req.initialize_http_header(
-          'User-Agent' => @@user_agent,
-          'Cookie' => @cookie.to_s,
-          'Referer' => 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
-          'Origin' => 'http://d1.web2.qq.com',
-        )
-
-        res = http.request req
-
-        if (res.is_a? Net::HTTPSuccess) && (json = JSON.parse(res.body)) && (json['retcode'] == 0)
-          @cookie.put res.get_fields('set-cookie')
+      if code == '200'
+        json = JSON.parse body
+        if json['retcode'] == 0
           @uin = json['result']['uin']
           @psessionid = json['result']['psessionid']
         else
-          @@logger.info '获取psessionid和uin失败'
+          @@logger.info "获取vfwebqq失败 返回码 #{json['retcode']}"
         end
-
+      else
+        @@logger.info "请求失败，返回码#{code}"
       end
     end
   end

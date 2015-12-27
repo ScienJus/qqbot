@@ -1,6 +1,5 @@
 require_relative 'qqbot/version'
 require_relative 'qqbot/auth'
-require_relative 'qqbot/cookie'
 
 module QQBot
   # Your code goes here...
