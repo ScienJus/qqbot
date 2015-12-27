@@ -1,12 +1,14 @@
-require_relative 'qqbot/version'
-require_relative 'qqbot/auth'
+require 'qqbot/version'
 
 module QQBot
-  # Your code goes here...
-  # autoload :Auth, 'qqbot/auth'
-  # autoload :Cookie, 'qqbot/cookie'
+
+  autoload :Auth, 'qqbot/auth'
+  autoload :Cookie, 'qqbot/cookie'
+  autoload :Client, 'qqbot/client'
+  autoload :Api, 'qqbot/api'
+  autoload :Bot, 'qqbot/bot'
 
   def self.new
-    QQBot::Auth.new
+    QQBot::Bot.new
   end
 end

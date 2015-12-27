@@ -2,38 +2,13 @@ require 'uri'
 require 'json'
 require "fileutils"
 require 'logger'
-require_relative 'client'
-
 
 module QQBot
   class Auth
     @@logger = Logger.new(STDOUT)
 
-    def initialize
-      @client = QQBot::Client.new
-    end
-
-    def login
-      get_qrcode
-
-      url = ''
-
-      until url.start_with? 'http' do
-        sleep 5
-        url = verify_qrcode
-        get_qrcode if url == '-1'
-      end
-
-      get_ptwebqq url
-
-      get_vfwebqq
-
-      get_psessionid_and_uin
-
-      puts "ptwebqq = #{@ptwebqq}"
-      puts "vfwebqq = #{@vfwebqq}"
-      puts "psessionid = #{@psessionid}"
-      puts "uin = #{@uin}"
+    def initialize client
+      @client = client
     end
 
     def get_qrcode
@@ -67,7 +42,7 @@ module QQBot
         if @pid == nil
           @@logger.info '开启web服务进程'
 
-          @pid = spawn "ruby -run -e httpd #{file_name} -p 9090"
+          @pid = spawn("ruby -run -e httpd #{file_name} -p 9090", out: '/dev/null')
         end
 
         @@logger.info '也可以通过访问 http://localhost:9090 查看二维码'
@@ -182,7 +157,6 @@ module QQBot
 
       code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
 
-
       if code == '200'
         json = JSON.parse body
         if json['retcode'] == 0
@@ -194,6 +168,15 @@ module QQBot
       else
         @@logger.info "请求失败，返回码#{code}"
       end
+    end
+
+    def options
+      {
+        ptwebqq: @ptwebqq,
+        vfwebqq: @vfwebqq,
+        psessionid: @psessionid,
+        uin: @uin
+      }
     end
   end
 end

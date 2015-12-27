@@ -1,7 +1,5 @@
 require 'net/http'
 require 'openssl'
-require_relative 'cookie'
-
 
 module QQBot
   class Client
