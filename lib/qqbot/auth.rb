@@ -1,18 +1,16 @@
 require 'uri'
 require 'json'
 require "fileutils"
-require 'logger'
 
 module QQBot
   class Auth
-    @@logger = Logger.new(STDOUT)
 
     def initialize client
       @client = client
     end
 
     def get_qrcode
-      @@logger.info '开始获取二维码'
+      QQBot::LOGGER.info '开始获取二维码'
 
       uri = URI('https://ssl.ptlogin2.qq.com/ptqrshow');
 
@@ -37,22 +35,22 @@ module QQBot
           file.close
         end
 
-        @@logger.info "二维码已经保存在#{file_name}中"
+        QQBot::LOGGER.info "二维码已经保存在#{file_name}中"
 
         if @pid == nil
-          @@logger.info '开启web服务进程'
+          QQBot::LOGGER.info '开启web服务进程'
 
           @pid = spawn("ruby -run -e httpd #{file_name} -p 9090", out: '/dev/null')
         end
 
-        @@logger.info '也可以通过访问 http://localhost:9090 查看二维码'
+        QQBot::LOGGER.info '也可以通过访问 http://localhost:9090 查看二维码'
       else
-        @@logger.info "请求失败，返回码#{code}"
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
     end
 
     def verify_qrcode
-      @@logger.info '等待扫描二维码'
+      QQBot::LOGGER.info '等待扫描二维码'
 
       uri = URI('https://ssl.ptlogin2.qq.com/ptqrlogin');
       uri.query =
@@ -84,12 +82,12 @@ module QQBot
       if code == '200'
         result = body.force_encoding("UTF-8")
         if result.include? '二维码已失效'
-          @@logger.info '二维码已失效，请重新获取'
+          QQBot::LOGGER.info '二维码已失效，请重新获取'
           return '-1'
         elsif result.include? 'http'
-          @@logger.info '认证成功'
+          QQBot::LOGGER.info '认证成功'
           unless @pid == nil
-            @@logger.info '关闭web服务进程'
+            QQBot::LOGGER.info '关闭web服务进程'
             system "kill -9 #{@pid}"
           end
           return URI.extract(result)[0]
@@ -97,27 +95,27 @@ module QQBot
           return '0'
         end
       else
-        @@logger.info "请求失败，返回码#{code}"
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
         return '0'
       end
     end
 
     def get_ptwebqq url
-      @@logger.info '开始获取ptwebqq'
+      QQBot::LOGGER.info '开始获取ptwebqq'
 
       uri = URI(url);
 
       code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
 
       if code == '302'
-        @ptwebqq = @client.get_cookie 'ptwebqq'
+        @ptwebqq = @client.get_cookie :ptwebqq
       else
-        @@logger.info "请求失败，返回码#{code}"
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
     end
 
     def get_vfwebqq
-      @@logger.info '开始获取vfwebqq'
+      QQBot::LOGGER.info '开始获取vfwebqq'
 
       uri = URI('http://s.web2.qq.com/api/getvfwebqq');
 
@@ -136,15 +134,15 @@ module QQBot
         if json['retcode'] == 0
           @vfwebqq = json['result']['vfwebqq']
         else
-          @@logger.info "获取vfwebqq失败 返回码 #{json['retcode']}"
+          QQBot::LOGGER.info "获取vfwebqq失败 返回码 #{json['retcode']}"
         end
       else
-        @@logger.info "请求失败，返回码#{code}"
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
     end
 
     def get_psessionid_and_uin
-      @@logger.info '开始获取psessionid和uin'
+      QQBot::LOGGER.info '开始获取psessionid和uin'
 
       uri = URI('http://d1.web2.qq.com/channel/login2');
 
@@ -163,10 +161,10 @@ module QQBot
           @uin = json['result']['uin']
           @psessionid = json['result']['psessionid']
         else
-          @@logger.info "获取vfwebqq失败 返回码 #{json['retcode']}"
+          QQBot::LOGGER.info "获取vfwebqq失败 返回码 #{json['retcode']}"
         end
       else
-        @@logger.info "请求失败，返回码#{code}"
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
     end
 

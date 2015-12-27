@@ -24,8 +24,6 @@ module QQBot
 
       auth_options = @auth.options
 
-      puts auth_options
-
       @api = QQBot::Api.new(@client, auth_options)
     end
 
@@ -33,7 +31,8 @@ module QQBot
       return if @api.nil?
 
       loop do
-        puts @api.poll
+        @api.poll
+        sleep 1
       end
     end
 

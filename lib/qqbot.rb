@@ -1,6 +1,9 @@
 require 'qqbot/version'
+require 'logger'
 
 module QQBot
+
+  LOGGER = Logger.new(STDOUT)
 
   autoload :Auth, 'qqbot/auth'
   autoload :Cookie, 'qqbot/cookie'
