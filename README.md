@@ -1,6 +1,6 @@
 # QQBot
 
-基于 Smart QQ (Web QQ)的 QQ 机器人
+基于 Smart QQ（Web QQ）的 QQ 机器人
 
 ### 使用方法
 
