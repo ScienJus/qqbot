@@ -111,6 +111,30 @@ module QQBot
           if json['retcode'] == 0
             return json['result']
           else
+            QQBot::LOGGER.info "获取好友列表失败 返回码 #{json['retcode']}"
+          end
+        else
+          QQBot::LOGGER.info "请求失败，返回码#{code}"
+        end
+    end
+
+    def get_discuss_list
+        uri = URI('http://s.web2.qq.com/api/get_discus_list')
+        uri.query =
+          URI.encode_www_form(
+            clientid: 53999199,
+            psessionid: @options[:psessionid],
+            vfwebqq: @options[:vfwebqq],
+            t: 0.1
+          )
+
+        code, body = @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
+
+        if code == '200'
+          json = JSON.parse body
+          if json['retcode'] == 0
+            return json['result']
+          else
             QQBot::LOGGER.info "获取群列表失败 返回码 #{json['retcode']}"
           end
         else

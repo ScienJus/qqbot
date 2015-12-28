@@ -116,5 +116,23 @@ module QQBot
         return category_list
       end
     end
+
+    def get_discuss_list
+      json = @api.nil? ? nil : @api.get_discuss_list
+
+      unless json.nil?
+        discuss_list = []
+
+        dnamelist = json['dnamelist']
+        dnamelist.each do |item|
+          discuss = QQBot::Discuss.new
+          discuss.name = item['name']
+          discuss.id = item['did']
+          discuss_list << discuss
+        end
+
+        return discuss_list
+      end
+    end
   end
 end

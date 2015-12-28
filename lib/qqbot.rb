@@ -13,6 +13,7 @@ module QQBot
   autoload :Group, 'qqbot/model'
   autoload :Friend, 'qqbot/model'
   autoload :Category, 'qqbot/model'
+  autoload :Discuss, 'qqbot/model'
 
   def self.new
     QQBot::Bot.new

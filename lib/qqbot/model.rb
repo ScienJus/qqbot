@@ -10,4 +10,8 @@ module QQBot
   class Category
     attr_accessor :name, :sort, :id, :friends
   end
+
+  class Discuss
+    attr_accessor :name, :id
+  end
 end
