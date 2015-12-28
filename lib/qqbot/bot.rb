@@ -48,17 +48,73 @@ module QQBot
           group.name = item['name']
           group.id = item['gid']
           group.code = item['code']
-          grou_map[group.id] = group
+          group_map[group.id] = group
         end
 
         gmarklist = json['gmarklist']
         gmarklist.each do |item|
-          group_map[item[uin]].markname = item['markname']
+          group_map[item['uin']].markname = item['markname']
         end
-        
+
         return group_map.values
       end
     end
-  end
 
+    def get_friend_list
+      json = @api.nil? ? nil : @api.get_friend_list
+
+      unless json.nil?
+        friend_map = {}
+        category_list = []
+
+        friends = json['friends']
+        friends.each do |item|
+          friend = QQBot::Friend.new
+          friend.id = item['uin']
+          friend.category_id = item['categories']
+          friend_map[friend.id] = friend
+        end
+
+        marknames = json['marknames']
+        marknames.each do |item|
+          friend_map[item['uin']].markname = item['markname']
+        end
+
+        vipinfo = json['vipinfo']
+        vipinfo.each do |item|
+          friend = friend_map[item['u']]
+          friend.is_vip = item['is_vip']
+          friend.vip_level = item['vip_level']
+        end
+
+        info = json['info']
+        info.each do |item|
+          friend_map[item['uin']].nickname = item['nick']
+        end
+
+        categories = json['categories']
+        has_default_category = false
+        categories.each do |item|
+          category = QQBot::Category.new
+          category.name = item['name']
+          category.sort = item['sort']
+          category.id = item['index']
+          category.friends = friend_map.values.select { |friend| friend.category_id == category.id }
+          category_list << category
+          has_default_category ||= (category.id == 0)
+        end
+
+        unless has_default_category
+          category = QQBot::Category.new
+          category.name = '我的好友（默认）'
+          category.sort = 1
+          category.id = 0
+          category.friends = friend_map.values.select { |friend| friend.category_id == category.id }
+          category_list << category
+        end
+
+        return category_list
+      end
+    end
+  end
 end

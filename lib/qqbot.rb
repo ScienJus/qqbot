@@ -10,7 +10,9 @@ module QQBot
   autoload :Client, 'qqbot/client'
   autoload :Api, 'qqbot/api'
   autoload :Bot, 'qqbot/bot'
-  autoload :Model, 'qqbot/model'
+  autoload :Group, 'qqbot/model'
+  autoload :Friend, 'qqbot/model'
+  autoload :Category, 'qqbot/model'
 
   def self.new
     QQBot::Bot.new

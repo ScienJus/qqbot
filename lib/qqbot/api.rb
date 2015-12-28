@@ -95,5 +95,31 @@ module QQBot
     def hash
       self.class.hash(@options[:uin], @options[:ptwebqq])
     end
+
+    def get_friend_list
+        uri = URI('http://s.web2.qq.com/api/get_user_friends2')
+
+        r = JSON.generate(
+          vfwebqq: @options[:vfwebqq],
+          hash: hash
+        )
+
+        code, body = @client.post(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1', r: r)
+
+        if code == '200'
+          json = JSON.parse body
+          if json['retcode'] == 0
+            return json['result']
+          else
+            QQBot::LOGGER.info "获取群列表失败 返回码 #{json['retcode']}"
+          end
+        else
+          QQBot::LOGGER.info "请求失败，返回码#{code}"
+        end
+    end
+
+    def hash
+      self.class.hash(@options[:uin], @options[:ptwebqq])
+    end
   end
 end
