@@ -1,6 +1,6 @@
 require 'uri'
 require 'json'
-require "fileutils"
+require 'fileutils'
 
 module QQBot
   class Api
@@ -22,8 +22,8 @@ module QQBot
 
       begin
         code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-      rescue [ExceptionType = Net::ReadTimeout]
-        return
+      rescue
+        retry
       end
 
       if code == '200'
@@ -36,7 +36,6 @@ module QQBot
       else
         QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
-
     end
   end
 end
