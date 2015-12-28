@@ -31,7 +31,41 @@ module QQBot
       return if @api.nil?
 
       loop do
-        block.call @api.poll
+        json = @api.poll
+        unless json.nil?
+          json.each do |item|
+            message = QQBot::Message.new
+            value = item['value']
+            case item['poll_type']
+            when 'message' then
+              message.type = 0
+              message.from_id = value['from_uin']
+              message.send_id = value['from_uin']
+            when 'group_message' then
+              message.type = 1
+              message.from_id = value['from_uin']
+              message.send_id = value['send_uin']
+            when 'discu_message' then
+              message.type = 2
+              message.from_id = value['from_uin']
+              message.send_id = value['send_uin']
+            else
+              message.type = 3
+            end
+            message.time = value['time']
+            message.content = value['content'][1]
+
+            font = QQBot::Font.new
+            font_json = value['content'][0][1]
+            font.color = font_json['color']
+            font.name = font_json['name']
+            font.size = font_json['size']
+            font.style = font_json['style']
+            message.font = font
+
+            block.call message
+          end
+        end
         sleep 1
       end
     end

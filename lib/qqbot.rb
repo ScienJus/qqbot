@@ -14,6 +14,8 @@ module QQBot
   autoload :Friend, 'qqbot/model'
   autoload :Category, 'qqbot/model'
   autoload :Discuss, 'qqbot/model'
+  autoload :Message, 'qqbot/model'
+  autoload :Font, 'qqbot/model'
 
   def self.new
     QQBot::Bot.new

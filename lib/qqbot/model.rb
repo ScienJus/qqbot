@@ -14,4 +14,12 @@ module QQBot
   class Discuss
     attr_accessor :name, :id
   end
+
+  class Message
+    attr_accessor :type, :from_id, :send_id, :time, :content, :font
+  end
+
+  class Font
+    attr_accessor :color, :name, :size, :style
+  end
 end
