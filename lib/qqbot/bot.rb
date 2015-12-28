@@ -35,6 +35,30 @@ module QQBot
         sleep 1
       end
     end
+
+    def get_group_list
+      json = @api.nil? ? nil : @api.get_group_list
+
+      unless json.nil?
+        group_map = {}
+
+        gnamelist = json['gnamelist']
+        gnamelist.each do |item|
+          group = QQBot::Group.new
+          group.name = item['name']
+          group.id = item['gid']
+          group.code = item['code']
+          grou_map[group.id] = group
+        end
+
+        gmarklist = json['gmarklist']
+        gmarklist.each do |item|
+          group_map[item[uin]].markname = item['markname']
+        end
+        
+        return group_map.values
+      end
+    end
   end
 
 end

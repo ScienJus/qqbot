@@ -108,7 +108,7 @@ module QQBot
       code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
 
       if code == '302'
-        @ptwebqq = @client.get_cookie :ptwebqq
+        @ptwebqq = @client.get_cookie 'ptwebqq'
       else
         QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
