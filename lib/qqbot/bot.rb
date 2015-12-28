@@ -27,15 +27,14 @@ module QQBot
       @api = QQBot::Api.new(@client, auth_options)
     end
 
-    def poll
+    def poll &block
       return if @api.nil?
 
       loop do
-        @api.poll
+        block.call @api.poll
         sleep 1
       end
     end
-
   end
 
 end
