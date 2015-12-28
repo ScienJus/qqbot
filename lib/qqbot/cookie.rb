@@ -6,12 +6,12 @@ module QQBot
     end
 
     def put set_cookie_array
-      return if set_cookie_array == nil
+      return if set_cookie_array.nil?
 
       set_cookie_array.each do |set_cookie|
         set_cookie.split('; ').each do |cookie|
           k, v = cookie.split('=')
-          @cookies[k] = v unless v == nil
+          @cookies[k] = v unless v.nil?
         end
       end
     end
