@@ -11,3 +11,5 @@
 lib/qqbot/qrcode.png
 
 qqbot-0.1.0.gem
+
+*.gem

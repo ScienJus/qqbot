@@ -10,14 +10,14 @@ Gem::Specification.new do |spec|
   spec.email         = ["i@scienjus.com"]
 
   spec.summary       = %q{a qq bot based on smart qq(web qq).}
-  spec.description   = %q{miao miao miao miao?}
+  spec.description   = %q{a qq bot based on smart qq api.}
   spec.homepage      = "https://github.com/ScienJus/qqbot"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
   # delete this section to allow pushing this gem to any host.
   if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "'http://mygemserver.com'"
+    spec.metadata['allowed_push_host'] = 'https://rubygems.org'
   else
     raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
   end
