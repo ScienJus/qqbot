@@ -1,6 +1,6 @@
 require 'uri'
 require 'json'
-require "fileutils"
+require 'fileutils'
 
 module QQBot
   class Auth
@@ -37,10 +37,9 @@ module QQBot
 
         QQBot::LOGGER.info "二维码已经保存在#{file_name}中"
 
-        if @pid == nil
+        if @pid.nil?
           QQBot::LOGGER.info '开启web服务进程'
-
-          @pid = spawn("ruby -run -e httpd #{file_name} -p 9090", out: '/dev/null')
+          @pid = spawn("ruby -run -e httpd #{file_name} -p 9090")
         end
 
         QQBot::LOGGER.info '也可以通过访问 http://localhost:9090 查看二维码'
@@ -86,9 +85,10 @@ module QQBot
           return '-1'
         elsif result.include? 'http'
           QQBot::LOGGER.info '认证成功'
-          unless @pid == nil
+          unless @pid.nil?
             QQBot::LOGGER.info '关闭web服务进程'
-            system "kill -9 #{@pid}"
+            Process.kill('KILL', @pid)
+            @pid = nil
           end
           return URI.extract(result)[0]
         else
