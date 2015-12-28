@@ -1,40 +1,63 @@
 # QQBot
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/qqbot`. To experiment with that code, run `bin/console` for an interactive prompt.
+基于 Smart QQ (Web QQ)的 QQ 机器人
 
-TODO: Delete this and the text above, and describe your gem
+### 使用方法
 
-## Installation
+安装这个 Gem ：
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'qqbot'
+```
+gem install qqbot
 ```
 
-And then execute:
+`require 'qqbot'`并编写自己的业务逻辑，例如：
 
-    $ bundle
+```
+require 'qqbot'
 
-Or install it yourself as:
+qqbot = QQBot.new
 
-    $ gem install qqbot
+qqbot.login
 
-## Usage
+qqbot.get_group_list.each { |group| puts group.name }
 
-TODO: Write usage instructions here
+qqbot.get_friend_list.each do |category|
+  puts category.name
+  category.friends.each do |friend|
+    puts "———— #{friend.nickname}"
+  end
+end
+```
 
-## Development
+### Api 列表
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+[x] 登录
+[x] 拉取消息
+[x] 获取群列表
+[x] 获取好友列表
+[x] 获取讨论组列表
+[ ] 发送私聊消息
+[ ] 发送群消息
+[ ] 发送临时消息
+[ ] 好友详细信息
+[ ] 群详细信息
+[ ] 讨论组详细信息
+[ ] 获取在线好友
+[ ] 获取最近会话
+[ ] 获取登录用户信息
+[ ] 查询用户 QQ 号
+[ ] 退出登录
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
-## Contributing
+### 拓展功能列表
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/ScienJus/qqbot. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+[x] 登录时保存二维码到本地
+[x] 登录时通过网页查看二维码
+[ ] 登录时发送二维码到指定邮箱
+[ ] 登录时将二维码打印到控制台
+[ ] 登录失效后邮件推送信息
 
 
-## License
+### 反馈
 
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+有问题或是建议可以提 Issues ，或是发邮件联系我，我的邮箱：`i@scienjus.com`
