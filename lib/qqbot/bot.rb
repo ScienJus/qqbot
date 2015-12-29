@@ -90,7 +90,7 @@ module QQBot
           group_map[item['uin']].markname = item['markname']
         end
 
-        return group_map.values
+        group_map.values
       end
     end
 
@@ -122,7 +122,7 @@ module QQBot
           category_list << category
         end
 
-        return category_list
+        category_list
       end
     end
 
@@ -130,7 +130,7 @@ module QQBot
       json = @api.nil? ? nil : @api.get_friend_list
 
       unless json.nil?
-        return build_friend_list json
+        build_friend_list json
       end
     end
 
@@ -162,7 +162,7 @@ module QQBot
         friend_map[item['uin']].nickname = item['nick']
       end
 
-      return friend_map.values
+      friend_map.values
     end
 
     def get_discuss_list
@@ -179,7 +179,7 @@ module QQBot
           discuss_list << discuss
         end
 
-        return discuss_list
+        discuss_list
       end
     end
 
@@ -193,6 +193,165 @@ module QQBot
 
     def send_to_discuss(discuss_id, content)
       !@api.nil? && @api.send_to_discuss(discuss_id, content)
+    end
+
+    def get_account_info
+      json = @api.nil? ? nil : @api.get_account_info
+
+      unless json.nil?
+        # TODO
+        account_info = QQBot::AccountInfo.new
+        account_info.phone = json['phone']
+        account_info.occupation = json['occupation']
+        account_info.college = json['college']
+        account_info.id = json['uin']
+        account_info.blood = json['blood']
+        account_info.slogan = json['lnick']
+        account_info.homepage = json['homepage']
+        account_info.vip_info = json['vip_info']
+        account_info.city = json['city']
+        account_info.country = json['country']
+        account_info.province = json['province']
+        account_info.personal = json['personal']
+        account_info.shengxiao = json['shengxiao']
+        account_info.nickname = json['nick']
+        account_info.email = json['email']
+        account_info.account = json['account']
+        account_info.gender = json['gender']
+        account_info.mobile = json['mobile']
+        birthday = QQBot::Birthday.new
+        birthday.year = json['birthday']['year']
+        birthday.month = json['birthday']['month']
+        birthday.day = json['birthday']['day']
+        account_info.birthday = birthday
+
+        account_info
+      end
+    end
+
+    def get_recent_list
+      json = @api.nil? ? nil : @api.get_recent_list
+
+      unless json.nil?
+        recent_list = []
+
+        json.each do |item|
+          recent = QQBot::Recent.new
+          recent.id = item['uin']
+          recent.type = item['type']
+          recent_list << recent
+        end
+
+        recent_list
+      end
+    end
+
+    def get_qq_by_id(id)
+      json = @api.nil? ? nil : @api.get_qq_by_id(id)
+
+      unless json.nil?
+        json['account']
+      end
+    end
+
+    def get_online_friends
+      json = @api.nil? ? nil : @api.get_online_friends
+
+      unless json.nil?
+        online_list = []
+
+        json.each do |item|
+          online = QQBot::Online.new
+          online.id = item['uin']
+          online.client_type = item['client_type']
+          online_list << online
+        end
+
+        online_list
+      end
+    end
+
+    def get_group_info(group_code)
+      json = @api.nil? ? nil : @api.get_group_info(group_code)
+
+      unless json.nil?
+        group_info = QQBot::GroupInfo.new
+        ginfo = json['ginfo']
+        group_info.id = ginfo['gid']
+        group_info.create_time = ginfo['createtime']
+        group_info.memo = ginfo['memo']
+        group_info.name = ginfo['name']
+        group_info.owner_id = ginfo['owner']
+        group_info.markname = ginfo['markname']
+
+        member_map = {}
+
+        minfo = json['minfo']
+        minfo.each do |item|
+          member = QQBot::GroupMember.new
+          member.id = item['uin']
+          member.nickname = item['nick']
+          member.gender = item['gender']
+          member.country = item['country']
+          member.city = item['city']
+          member_map[member.id] = member
+        end
+
+        cards = json['cards']
+        cards.each do |item|
+          member_map[item['muin']].markname = item['card']
+        end
+
+        vipinfo = json['vipinfo']
+        vipinfo.each do |item|
+          member = member_map[item['u']]
+          member.is_vip = item['is_vip']
+          member.vip_level = item['vip_level']
+        end
+
+        stats = json['stats']
+        stats.each do |item|
+          member = member_map[item['uin']]
+          member.client_type = item['client_type']
+          member.status = item['stat']
+        end
+
+        group_info.members = member_map.values
+
+        group_info
+      end
+    end
+
+    def get_discuss_info(discuss_id)
+      json = @api.nil? ? nil : @api.get_discuss_info(discuss_id)
+
+      unless json.nil?
+        discuss_info = QQBot::DiscussInfo.new
+        info = json['info']
+        discuss_info.id = info['did']
+        discuss_info.name = info['discu_name']
+
+        member_map = {}
+
+        mem_info = json['mem_info']
+        mem_info.each do |item|
+          member = QQBot::DiscussMember.new
+          member.id = item['uin']
+          member.nickname = item['nick']
+          member_map[member.id] = member
+        end
+
+        mem_status = json['mem_status']
+        mem_status.each do |item|
+          member = member_map[item['uin']]
+          member.client_type = item['client_type']
+          member.status = item['status']
+        end
+
+        discuss_info.members = member_map.values
+
+        discuss_info
+      end
     end
   end
 end

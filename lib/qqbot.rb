@@ -18,6 +18,14 @@ module QQBot
   autoload :Discuss, 'qqbot/model'
   autoload :Message, 'qqbot/model'
   autoload :Font, 'qqbot/model'
+  autoload :AccountInfo, 'qqbot/model'
+  autoload :Birthday, 'qqbot/model'
+  autoload :Recent, 'qqbot/model'
+  autoload :Online, 'qqbot/model'
+  autoload :GroupInfo, 'qqbot/model'
+  autoload :GroupMember, 'qqbot/model'
+  autoload :DiscussInfo, 'qqbot/model'
+  autoload :DiscussMember, 'qqbot/model'
 
   def self.new
     QQBot::Bot.new
