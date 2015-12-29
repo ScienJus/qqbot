@@ -15,6 +15,9 @@ module QQBot
     end
 
     def get(uri, referer = '')
+
+      QQBot::LOGGER.debug { "get #{uri.to_s}" }
+
       Net::HTTP.start(uri.host, uri.port,
         use_ssl: uri.scheme == 'https',
         verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
@@ -31,11 +34,16 @@ module QQBot
 
         @cookie.put res.get_fields('set-cookie')
 
+        QQBot::LOGGER.debug { "code: #{res.code}, body: #{res.body}" }
+
         return res.code, res.body
       end
     end
 
     def post(uri, referer = '', form_data = {})
+
+      QQBot::LOGGER.debug { "post uri: #{uri.to_s} data: #{form_data.to_s}" }
+
       Net::HTTP.start(uri.host, uri.port,
         use_ssl: uri.scheme == 'https',
         verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
@@ -54,6 +62,8 @@ module QQBot
         res = http.request req
 
         @cookie.put res.get_fields('set-cookie')
+
+        QQBot::LOGGER.debug { "response code: #{res.code}, body: #{res.body}" }
 
         return res.code, res.body
 

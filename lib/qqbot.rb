@@ -4,6 +4,8 @@ require 'logger'
 module QQBot
 
   LOGGER = Logger.new(STDOUT)
+  LOGGER.datetime_format = '%Y-%m-%d %H:%M:%S'
+  LOGGER.level = Logger::DEBUG
 
   autoload :Auth, 'qqbot/auth'
   autoload :Cookie, 'qqbot/cookie'
