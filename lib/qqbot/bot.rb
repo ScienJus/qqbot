@@ -69,7 +69,7 @@ module QQBot
       code, body = @auth.get_ptwebqq url
 
       if code == '302'
-        return true, @client.get_cookie 'ptwebqq'
+        return true, @client.get_cookie('ptwebqq')
       else
         QQBot::LOGGER.info "请求失败，返回码#{code}"
         return false
@@ -127,14 +127,14 @@ module QQBot
       raise Error::LoginFailed unless result
 
       QQBot::LOGGER.info '开始获取psessionid和uin'
-      result, psessionid, uin = get_psessionid_and_uin ptwebqq
+      result, uin, psessionid = get_psessionid_and_uin ptwebqq
       raise Error::LoginFailed unless result
 
       {
-        ptwebqq: @ptwebqq,
-        vfwebqq: @vfwebqq,
-        psessionid: @psessionid,
-        uin: @uin
+        ptwebqq: ptwebqq,
+        vfwebqq: vfwebqq,
+        psessionid: psessionid,
+        uin: uin
       }
     end
 
