@@ -26,6 +26,7 @@ module QQBot
   autoload :GroupMember, 'qqbot/model'
   autoload :DiscussInfo, 'qqbot/model'
   autoload :DiscussMember, 'qqbot/model'
+  autoload :ERROR, 'qqbot/error'
 
   def self.new
     QQBot::Bot.new

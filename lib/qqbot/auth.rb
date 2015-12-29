@@ -10,8 +10,6 @@ module QQBot
     end
 
     def get_qrcode
-      QQBot::LOGGER.info '开始获取二维码'
-
       uri = URI('https://ssl.ptlogin2.qq.com/ptqrshow');
 
       uri.query =
@@ -25,32 +23,10 @@ module QQBot
           t: 0.1,
         )
 
-      code, body = @client.get uri
-
-      if code == '200'
-        file_name = File.expand_path('qrcode.png', File.dirname(__FILE__));
-
-        File.open(file_name, 'wb') do |file|
-          file.write body
-          file.close
-        end
-
-        QQBot::LOGGER.info "二维码已经保存在#{file_name}中"
-
-        if @pid.nil?
-          QQBot::LOGGER.info '开启web服务进程'
-          @pid = spawn("ruby -run -e httpd #{file_name} -p 9090")
-        end
-
-        QQBot::LOGGER.info '也可以通过访问 http://localhost:9090 查看二维码'
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-      end
+      @client.get uri
     end
 
     def verify_qrcode
-      QQBot::LOGGER.info '等待扫描二维码'
-
       uri = URI('https://ssl.ptlogin2.qq.com/ptqrlogin');
       uri.query =
         URI.encode_www_form(
@@ -76,105 +52,40 @@ module QQBot
           pt_randsalt: 0,
         )
 
-      code, body = @client.get uri
-
-      if code == '200'
-        result = body.force_encoding("UTF-8")
-        if result.include? '二维码已失效'
-          QQBot::LOGGER.info '二维码已失效，请重新获取'
-          return '-1'
-        elsif result.include? 'http'
-          QQBot::LOGGER.info '认证成功'
-          unless @pid.nil?
-            QQBot::LOGGER.info '关闭web服务进程'
-            Process.kill('KILL', @pid)
-            @pid = nil
-          end
-          return URI.extract(result)[0]
-        else
-          return '0'
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-        return '0'
-      end
+      @client.get uri
     end
 
-    def get_ptwebqq url
-      QQBot::LOGGER.info '开始获取ptwebqq'
-
+    def get_ptwebqq(url)
       uri = URI(url);
 
-      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
-
-      if code == '302'
-        @ptwebqq = @client.get_cookie 'ptwebqq'
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-      end
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
     end
 
-    def get_vfwebqq
-      QQBot::LOGGER.info '开始获取vfwebqq'
-
+    def get_vfwebqq(ptwebqq)
       uri = URI('http://s.web2.qq.com/api/getvfwebqq');
 
       uri.query =
         URI.encode_www_form(
-          ptwebqq: @ptwebqq,
+          ptwebqq: ptwebqq,
           clientid: 53999199,
           psessionid: '',
           t: 0.1,
         )
 
-      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          @vfwebqq = json['result']['vfwebqq']
-        else
-          QQBot::LOGGER.info "获取vfwebqq失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-      end
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
     end
 
-    def get_psessionid_and_uin
-      QQBot::LOGGER.info '开始获取psessionid和uin'
-
+    def get_psessionid_and_uin(ptwebqq)
       uri = URI('http://d1.web2.qq.com/channel/login2');
 
       r = JSON.generate(
-        ptwebqq: @ptwebqq,
+        ptwebqq: ptwebqq,
         clientid: 53999199,
         psessionid: '',
         status: 'online'
       )
 
-      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          @uin = json['result']['uin']
-          @psessionid = json['result']['psessionid']
-        else
-          QQBot::LOGGER.info "获取vfwebqq失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-      end
-    end
-
-    def options
-      {
-        ptwebqq: @ptwebqq,
-        vfwebqq: @vfwebqq,
-        psessionid: @psessionid,
-        uin: @uin
-      }
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
   end
 end

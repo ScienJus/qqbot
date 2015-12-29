@@ -3,28 +3,139 @@ module QQBot
     def initialize
       @client = QQBot::Client.new
       @auth = QQBot::Auth.new @client
+      auth_options = login
+      @api = QQBot::Api.new(@client, auth_options)
     end
 
-    def login
-      @auth.get_qrcode
+    def get_qrcode
+      code, body = @auth.get_qrcode
 
+      if code == '200'
+        file_name = File.expand_path('qrcode.png', File.dirname(__FILE__));
+
+        File.open(file_name, 'wb') do |file|
+          file.write body
+          file.close
+        end
+
+        QQBot::LOGGER.info "二维码已经保存在#{file_name}中"
+
+        if @pid.nil?
+          QQBot::LOGGER.info '开启web服务进程'
+          @pid = spawn("ruby -run -e httpd #{file_name} -p 9090")
+        end
+
+        QQBot::LOGGER.info '也可以通过访问 http://localhost:9090 查看二维码'
+        return true
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+        return false
+      end
+    end
+
+    def verify_qrcode
       url = ''
 
       until url.start_with? 'http' do
         sleep 5
-        url = @auth.verify_qrcode
-        @auth.get_qrcode if url == '-1'
+        code, body = @auth.verify_qrcode
+
+        if code == '200'
+          result = body.force_encoding("UTF-8")
+          if result.include? '二维码已失效'
+            QQBot::LOGGER.info '二维码已失效，准备重新获取'
+            return false unless get_qrcode
+          elsif result.include? 'http'
+            QQBot::LOGGER.info '认证成功'
+            url = URI.extract(result).first
+            return true, url
+          end
+        else
+          QQBot::LOGGER.info "请求失败，返回码#{code}"
+          return false
+        end
       end
+    end
 
-      @auth.get_ptwebqq url
+    def close_qrcode_server
+      unless @pid.nil?
+        QQBot::LOGGER.info '关闭web服务进程'
+        Process.kill('KILL', @pid)
+        @pid = nil
+      end
+    end
 
-      @auth.get_vfwebqq
+    def get_ptwebqq(url)
+      code, body = @auth.get_ptwebqq url
 
-      @auth.get_psessionid_and_uin
+      if code == '302'
+        return true, @client.get_cookie 'ptwebqq'
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+        return false
+      end
+    end
 
-      auth_options = @auth.options
+    def get_vfwebqq(ptwebqq)
+      code, body = @auth.get_vfwebqq ptwebqq
 
-      @api = QQBot::Api.new(@client, auth_options)
+      if code == '200'
+        json = JSON.parse body
+        if json['retcode'] == 0
+          return true, json['result']['vfwebqq']
+        else
+          QQBot::LOGGER.info "获取vfwebqq失败 返回码 #{json['retcode']}"
+        end
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+      end
+      return false
+    end
+
+    def get_psessionid_and_uin(ptwebqq)
+      code, body = @auth.get_psessionid_and_uin ptwebqq
+
+      if code == '200'
+        json = JSON.parse body
+        if json['retcode'] == 0
+          return true, json['result']['uin'], json['result']['psessionid']
+        else
+          QQBot::LOGGER.info "获取psessionid和uin失败 返回码 #{json['retcode']}"
+        end
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+      end
+      return false
+    end
+
+    def login
+      QQBot::LOGGER.info '开始获取二维码'
+      raise Error::LoginFailed unless get_qrcode
+
+      QQBot::LOGGER.info '等待扫描二维码'
+      result, url = verify_qrcode
+      raise Error::LoginFailed unless result
+
+      close_qrcode_server
+
+      QQBot::LOGGER.info '开始获取ptwebqq'
+      result, ptwebqq = get_ptwebqq url
+      raise Error::LoginFailed unless result
+
+      QQBot::LOGGER.info '开始获取vfwebqq'
+      result, vfwebqq = get_vfwebqq ptwebqq
+      raise Error::LoginFailed unless result
+
+      QQBot::LOGGER.info '开始获取psessionid和uin'
+      result, psessionid, uin = get_psessionid_and_uin ptwebqq
+      raise Error::LoginFailed unless result
+
+      {
+        ptwebqq: @ptwebqq,
+        vfwebqq: @vfwebqq,
+        psessionid: @psessionid,
+        uin: @uin
+      }
     end
 
     def poll &block
