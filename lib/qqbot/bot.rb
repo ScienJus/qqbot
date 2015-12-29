@@ -94,37 +94,12 @@ module QQBot
       end
     end
 
-    def get_friend_list
+    def get_friend_list_with_category
       json = @api.nil? ? nil : @api.get_friend_list
 
       unless json.nil?
-        friend_map = {}
         category_list = []
-
-        friends = json['friends']
-        friends.each do |item|
-          friend = QQBot::Friend.new
-          friend.id = item['uin']
-          friend.category_id = item['categories']
-          friend_map[friend.id] = friend
-        end
-
-        marknames = json['marknames']
-        marknames.each do |item|
-          friend_map[item['uin']].markname = item['markname']
-        end
-
-        vipinfo = json['vipinfo']
-        vipinfo.each do |item|
-          friend = friend_map[item['u']]
-          friend.is_vip = item['is_vip']
-          friend.vip_level = item['vip_level']
-        end
-
-        info = json['info']
-        info.each do |item|
-          friend_map[item['uin']].nickname = item['nick']
-        end
+        friend_list = build_friend_list json
 
         categories = json['categories']
         has_default_category = false
@@ -133,7 +108,7 @@ module QQBot
           category.name = item['name']
           category.sort = item['sort']
           category.id = item['index']
-          category.friends = friend_map.values.select { |friend| friend.category_id == category.id }
+          category.friends = friend_list.select { |friend| friend.category_id == category.id }
           category_list << category
           has_default_category ||= (category.id == 0)
         end
@@ -143,12 +118,51 @@ module QQBot
           category.name = '我的好友（默认）'
           category.sort = 1
           category.id = 0
-          category.friends = friend_map.values.select { |friend| friend.category_id == category.id }
+          category.friends = friend_list.select { |friend| friend.category_id == category.id }
           category_list << category
         end
 
         return category_list
       end
+    end
+
+    def get_friend_list
+      json = @api.nil? ? nil : @api.get_friend_list
+
+      unless json.nil?
+        return build_friend_list json
+      end
+    end
+
+    def build_friend_list(json)
+      friend_map = {}
+
+      friends = json['friends']
+      friends.each do |item|
+        friend = QQBot::Friend.new
+        friend.id = item['uin']
+        friend.category_id = item['categories']
+        friend_map[friend.id] = friend
+      end
+
+      marknames = json['marknames']
+      marknames.each do |item|
+        friend_map[item['uin']].markname = item['markname']
+      end
+
+      vipinfo = json['vipinfo']
+      vipinfo.each do |item|
+        friend = friend_map[item['u']]
+        friend.is_vip = item['is_vip']
+        friend.vip_level = item['vip_level']
+      end
+
+      info = json['info']
+      info.each do |item|
+        friend_map[item['uin']].nickname = item['nick']
+      end
+
+      return friend_map.values
     end
 
     def get_discuss_list
@@ -167,6 +181,18 @@ module QQBot
 
         return discuss_list
       end
+    end
+
+    def send_to_friend(friend_id, content)
+      !@api.nil? && @api.send_to_friend(friend_id, content)
+    end
+
+    def send_to_group(group_id, content)
+      !@api.nil? && @api.send_to_group(group_id, content)
+    end
+
+    def send_to_discuss(discuss_id, content)
+      !@api.nil? && @api.send_to_discuss(discuss_id, content)
     end
   end
 end

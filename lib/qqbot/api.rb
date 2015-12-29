@@ -8,6 +8,7 @@ module QQBot
     def initialize(client, options = {})
       @client = client
       @options = options
+      @msg_id = 1_000_000
     end
 
     def self.hash(uin, ptwebqq)
@@ -142,8 +143,114 @@ module QQBot
         end
     end
 
+    def send_to_friend(friend_id, content)
+      uri = URI('http://d1.web2.qq.com/channel/send_buddy_msg2')
+
+      r = JSON.generate(
+        to: friend_id,
+        content: build_message(content),
+        face: 522,
+        clientid: 53999199,
+        msg_id: msg_id,
+        psessionid: @options[:psessionid]
+      )
+
+      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
+
+      if code == '200'
+        json = JSON.parse body
+        if json['errCode'] == 0
+          QQBot::LOGGER.info '发送成功'
+          return true
+        else
+          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
+        end
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+      end
+      return false
+    end
+
+    def send_to_group(group_id, content)
+      uri = URI('http://d1.web2.qq.com/channel/send_qun_msg2')
+
+      r = JSON.generate(
+        group_uin: group_id,
+        content: build_message(content),
+        face: 522,
+        clientid: 53999199,
+        msg_id: msg_id,
+        psessionid: @options[:psessionid]
+      )
+
+      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
+
+      if code == '200'
+        json = JSON.parse body
+        if json['errCode'] == 0
+          QQBot::LOGGER.info '发送成功'
+          return true
+        else
+          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
+        end
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+      end
+      return false
+    end
+
+    def send_to_discuss(discuss_id, content)
+      uri = URI('http://d1.web2.qq.com/channel/send_discu_msg2')
+
+      r = JSON.generate(
+        did: discuss_id,
+        content: build_message(content),
+        face: 522,
+        clientid: 53999199,
+        msg_id: msg_id,
+        psessionid: @options[:psessionid]
+      )
+
+      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
+
+      if code == '200'
+        json = JSON.parse body
+
+      if json['errCode'] == 0
+          QQBot::LOGGER.info '发送成功'
+          return true
+        else
+          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
+        end
+      else
+        QQBot::LOGGER.info "请求失败，返回码#{code}"
+      end
+      return false
+    end
+
+    def build_message(content)
+      JSON.generate(
+        [
+            content,
+            [
+                'font',
+                {
+                    name: '宋体',
+                    size: 10,
+                    style: [0, 0, 0],
+                    color: '000000'
+                }
+            ]
+        ]
+      )
+    end
+
     def hash
       self.class.hash(@options[:uin], @options[:ptwebqq])
+    end
+
+    def msg_id
+      @msg_id += 1
     end
   end
 end
