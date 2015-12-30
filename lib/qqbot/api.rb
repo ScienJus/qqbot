@@ -284,7 +284,7 @@ module QQBot
     def self.build_message(content)
       JSON.generate(
         [
-            content,
+            content.force_encoding("UTF-8"),
             [
                 'font',
                 {

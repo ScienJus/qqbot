@@ -28,6 +28,14 @@ qqbot.get_friend_list_with_category.each do |category|
 end
 ```
 
+### 示例代码
+
+[在控制台打印接收到的所有消息][1]
+[通过 Tuling123 的 Api 实现自动回复功能][2]
+
+[1]: https://gist.github.com/ScienJus/f1ba1e5b1611cca662cc
+[2]: https://gist.github.com/ScienJus/26a341fda25d009acea1
+
 ### Api 列表
 
 - [x] 登录
