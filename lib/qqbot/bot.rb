@@ -173,7 +173,7 @@ module QQBot
             font.style = font_json['style']
             message.font = font
 
-            yield if block_given?
+            yield message if block_given?
           end
         end
         sleep 1
@@ -412,9 +412,7 @@ module QQBot
         end
 
         cards = result['cards']
-        cards.each do |item|
-          member_map[item['muin']].markname = item['card']
-        end
+        cards.each { |item| member_map[item['muin']].markname = item['card'] } if cards
 
         vipinfo = result['vipinfo']
         vipinfo.each do |item|

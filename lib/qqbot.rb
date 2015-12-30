@@ -6,11 +6,11 @@ module QQBot
   class Logger < Logger
 
     def info(*args)
-      super || false if info?
+      super && false if info?
     end
 
     def debug(*args)
-      super || false if debug?
+      super && false if debug?
     end
   end
 
