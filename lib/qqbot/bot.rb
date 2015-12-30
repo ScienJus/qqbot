@@ -1,14 +1,37 @@
 module QQBot
   class Bot
     def initialize
-      @client = QQBot::Client.new
-      @auth = QQBot::Auth.new @client
-      auth_options = login
-      @api = QQBot::Api.new(@client, auth_options)
+      @api = QQBot::Api.new
+      @api.auth_options = login
+    end
+
+    def self.check_response_json(code, body)
+      if code == '200'
+        json = JSON.parse body
+        if json['retcode'] == 0
+          json['result']
+        end
+        QQBot::LOGGER.info "请求失败， JSON返回码 #{json['retcode']}"
+      end
+      QQBot::LOGGER.info "请求失败，HTTP返回码#{code} retcode"
+    end
+
+    def self.check_send_msg_response(code, body)
+      if code == '200'
+        json = JSON.parse body
+        if json['errCode'] == 0
+          QQBot::LOGGER.info '发送成功'
+          return true
+        else
+          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
+        end
+      else
+        QQBot::LOGGER.info "请求失败，返回码 #{code}"
+      end
     end
 
     def get_qrcode
-      code, body = @auth.get_qrcode
+      code, body = @api.get_qrcode
 
       if code == '200'
         file_name = File.expand_path('qrcode.png', File.dirname(__FILE__));
@@ -20,7 +43,7 @@ module QQBot
 
         QQBot::LOGGER.info "二维码已经保存在#{file_name}中"
 
-        if @pid.nil?
+        unless @pid
           QQBot::LOGGER.info '开启web服务进程'
           @pid = spawn("ruby -run -e httpd #{file_name} -p 9090")
         end
@@ -29,7 +52,6 @@ module QQBot
         return true
       else
         QQBot::LOGGER.info "请求失败，返回码#{code}"
-        return false
       end
     end
 
@@ -38,27 +60,26 @@ module QQBot
 
       until url.start_with? 'http' do
         sleep 5
-        code, body = @auth.verify_qrcode
+        code, body = @api.verify_qrcode
 
         if code == '200'
           result = body.force_encoding("UTF-8")
           if result.include? '二维码已失效'
             QQBot::LOGGER.info '二维码已失效，准备重新获取'
-            return false unless get_qrcode
+            return unless get_qrcode
           elsif result.include? 'http'
             QQBot::LOGGER.info '认证成功'
-            url = URI.extract(result).first
-            return true, url
+            return URI.extract(result).first
           end
         else
           QQBot::LOGGER.info "请求失败，返回码#{code}"
-          return false
+          return
         end
       end
     end
 
     def close_qrcode_server
-      unless @pid.nil?
+      if @pid
         QQBot::LOGGER.info '关闭web服务进程'
         Process.kill('KILL', @pid)
         @pid = nil
@@ -66,69 +87,50 @@ module QQBot
     end
 
     def get_ptwebqq(url)
-      code, body = @auth.get_ptwebqq url
+      code, body = @api.get_ptwebqq url
 
       if code == '302'
-        return true, @client.get_cookie('ptwebqq')
+        @client.get_cookie('ptwebqq')
       else
         QQBot::LOGGER.info "请求失败，返回码#{code}"
-        return false
       end
     end
 
     def get_vfwebqq(ptwebqq)
-      code, body = @auth.get_vfwebqq ptwebqq
+      code, body = @api.get_vfwebqq ptwebqq
 
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return true, json['result']['vfwebqq']
-        else
-          QQBot::LOGGER.info "获取vfwebqq失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-      end
-      return false
+      result = self.class.check_response_json(code, body)
+      result['vfwebqq'] if result
     end
 
     def get_psessionid_and_uin(ptwebqq)
-      code, body = @auth.get_psessionid_and_uin ptwebqq
+      code, body = @api.get_psessionid_and_uin ptwebqq
 
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return true, json['result']['uin'], json['result']['psessionid']
-        else
-          QQBot::LOGGER.info "获取psessionid和uin失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码#{code}"
-      end
-      return false
+      result = self.class.check_response_json(code, body)
+      result['psessionid'], result['uin'] if result
     end
 
     def login
       QQBot::LOGGER.info '开始获取二维码'
-      raise Error::LoginFailed unless get_qrcode
+      raise QQBot::Error::LoginFailed unless get_qrcode
 
       QQBot::LOGGER.info '等待扫描二维码'
-      result, url = verify_qrcode
-      raise Error::LoginFailed unless result
+      url = verify_qrcode
+      raise QQBot::Error::LoginFailed unless url
 
       close_qrcode_server
 
       QQBot::LOGGER.info '开始获取ptwebqq'
-      result, ptwebqq = get_ptwebqq url
-      raise Error::LoginFailed unless result
+      ptwebqq = get_ptwebqq url
+      raise QQBot::Error::LoginFailed unless ptwebqq
 
       QQBot::LOGGER.info '开始获取vfwebqq'
-      result, vfwebqq = get_vfwebqq ptwebqq
-      raise Error::LoginFailed unless result
+      vfwebqq = get_vfwebqq ptwebqq
+      raise QQBot::Error::LoginFailed unless vfwebqq
 
       QQBot::LOGGER.info '开始获取psessionid和uin'
-      result, uin, psessionid = get_psessionid_and_uin ptwebqq
-      raise Error::LoginFailed unless result
+      uin, psessionid = get_psessionid_and_uin ptwebqq
+      raise QQBot::Error::LoginFailed unless uin && psessionid
 
       {
         ptwebqq: ptwebqq,
@@ -138,30 +140,25 @@ module QQBot
       }
     end
 
-    def poll &block
-      return if @api.nil?
-
+    def poll
       loop do
-        json = @api.poll
-        unless json.nil?
-          json.each do |item|
+        code, body = @api.poll
+        result = self.class.check_response_json(code, body)
+
+        if result
+          result.each do |item|
             message = QQBot::Message.new
             value = item['value']
+            message.type, message.from_id, message.send_id =
             case item['poll_type']
             when 'message' then
-              message.type = 0
-              message.from_id = value['from_uin']
-              message.send_id = value['from_uin']
+              0, value['from_uin'], value['from_uin']
             when 'group_message' then
-              message.type = 1
-              message.from_id = value['from_uin']
-              message.send_id = value['send_uin']
+              1, value['from_uin'], value['send_uin']
             when 'discu_message' then
-              message.type = 2
-              message.from_id = value['from_uin']
-              message.send_id = value['send_uin']
+              2, value['from_uin'], value['send_uin']
             else
-              message.type = 3
+              3
             end
             message.time = value['time']
             message.content = value['content'][1]
@@ -174,7 +171,7 @@ module QQBot
             font.style = font_json['style']
             message.font = font
 
-            block.call message
+            yield if block_given?
           end
         end
         sleep 1
@@ -182,12 +179,13 @@ module QQBot
     end
 
     def get_group_list
-      json = @api.nil? ? nil : @api.get_group_list
+      code, body = @api.get_group_list
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
+      if result
         group_map = {}
 
-        gnamelist = json['gnamelist']
+        gnamelist = result['gnamelist']
         gnamelist.each do |item|
           group = QQBot::Group.new
           group.name = item['name']
@@ -196,7 +194,7 @@ module QQBot
           group_map[group.id] = group
         end
 
-        gmarklist = json['gmarklist']
+        gmarklist = result['gmarklist']
         gmarklist.each do |item|
           group_map[item['uin']].markname = item['markname']
         end
@@ -206,22 +204,22 @@ module QQBot
     end
 
     def get_friend_list_with_category
-      json = @api.nil? ? nil : @api.get_friend_list
+      code, body = @api.get_friend_list
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
-        category_list = []
-        friend_list = build_friend_list json
+      if result
+        friend_list = self.class.build_friend_list result
 
-        categories = json['categories']
+        categories = result['categories']
         has_default_category = false
-        categories.each do |item|
+        category_list = categories.collect do |item|
           category = QQBot::Category.new
           category.name = item['name']
           category.sort = item['sort']
           category.id = item['index']
           category.friends = friend_list.select { |friend| friend.category_id == category.id }
-          category_list << category
           has_default_category ||= (category.id == 0)
+          category
         end
 
         unless has_default_category
@@ -238,14 +236,15 @@ module QQBot
     end
 
     def get_friend_list
-      json = @api.nil? ? nil : @api.get_friend_list
+      code, body = @api.get_friend_list
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
-        build_friend_list json
+      if result
+        self.class.build_friend_list(result)
       end
     end
 
-    def build_friend_list(json)
+    def self.build_friend_list(json)
       friend_map = {}
 
       friends = json['friends']
@@ -277,63 +276,69 @@ module QQBot
     end
 
     def get_discuss_list
-      json = @api.nil? ? nil : @api.get_discuss_list
+      code, body = @api.get_discuss_list
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
-        discuss_list = []
-
-        dnamelist = json['dnamelist']
-        dnamelist.each do |item|
+      if result
+        dnamelist = result['dnamelist']
+        dnamelist.collect do |item|
           discuss = QQBot::Discuss.new
           discuss.name = item['name']
           discuss.id = item['did']
-          discuss_list << discuss
+          discuss
         end
-
-        discuss_list
       end
     end
 
     def send_to_friend(friend_id, content)
-      !@api.nil? && @api.send_to_friend(friend_id, content)
+      code, body = @api.send_to_friend(friend_id, content)
+      self.class.check_send_msg_response(code, body)
     end
 
     def send_to_group(group_id, content)
-      !@api.nil? && @api.send_to_group(group_id, content)
+      code, body = @api.send_to_group(group_id, content)
+      self.class.check_send_msg_response(code, body)
     end
 
     def send_to_discuss(discuss_id, content)
-      !@api.nil? && @api.send_to_discuss(discuss_id, content)
+      code, body = @api.send_to_discuss(discuss_id, content)
+      self.class.check_send_msg_response(code, body)
+    end
+
+    def send_to_sess(sess_id, content)
+      code, body = @api.send_to_sess(sess_id, content)
+      self.class.check_send_msg_response(code, body)
     end
 
     def get_account_info
-      json = @api.nil? ? nil : @api.get_account_info
+      code, body = @api.get_account_info
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
+      if result
         # TODO
         account_info = QQBot::AccountInfo.new
-        account_info.phone = json['phone']
-        account_info.occupation = json['occupation']
-        account_info.college = json['college']
-        account_info.id = json['uin']
-        account_info.blood = json['blood']
-        account_info.slogan = json['lnick']
-        account_info.homepage = json['homepage']
-        account_info.vip_info = json['vip_info']
-        account_info.city = json['city']
-        account_info.country = json['country']
-        account_info.province = json['province']
-        account_info.personal = json['personal']
-        account_info.shengxiao = json['shengxiao']
-        account_info.nickname = json['nick']
-        account_info.email = json['email']
-        account_info.account = json['account']
-        account_info.gender = json['gender']
-        account_info.mobile = json['mobile']
+        account_info.phone = result['phone']
+        account_info.occupation = result['occupation']
+        account_info.college = result['college']
+        account_info.id = result['uin']
+        account_info.blood = result['blood']
+        account_info.slogan = result['lnick']
+        account_info.homepage = result['homepage']
+        account_info.vip_info = result['vip_info']
+        account_info.city = result['city']
+        account_info.country = result['country']
+        account_info.province = result['province']
+        account_info.personal = result['personal']
+        account_info.shengxiao = result['shengxiao']
+        account_info.nickname = result['nick']
+        account_info.email = result['email']
+        account_info.account = result['account']
+        account_info.gender = result['gender']
+        account_info.mobile = result['mobile']
         birthday = QQBot::Birthday.new
-        birthday.year = json['birthday']['year']
-        birthday.month = json['birthday']['month']
-        birthday.day = json['birthday']['day']
+        birthday.year = result['birthday']['year']
+        birthday.month = result['birthday']['month']
+        birthday.day = result['birthday']['day']
         account_info.birthday = birthday
 
         account_info
@@ -341,53 +346,49 @@ module QQBot
     end
 
     def get_recent_list
-      json = @api.nil? ? nil : @api.get_recent_list
+      code, body = @api.get_recent_list
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
-        recent_list = []
-
-        json.each do |item|
+      if result
+        result.collect do |item|
           recent = QQBot::Recent.new
           recent.id = item['uin']
           recent.type = item['type']
-          recent_list << recent
+          recent
         end
-
-        recent_list
       end
     end
 
     def get_qq_by_id(id)
-      json = @api.nil? ? nil : @api.get_qq_by_id(id)
+      code, body = @api.get_qq_by_id(id)
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
-        json['account']
+      if result
+        result['account']
       end
     end
 
     def get_online_friends
-      json = @api.nil? ? nil : @api.get_online_friends
+      code, body = @api.get_online_friends
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
-        online_list = []
-
-        json.each do |item|
+      if result
+        result.collect do |item|
           online = QQBot::Online.new
           online.id = item['uin']
           online.client_type = item['client_type']
-          online_list << online
+          online
         end
-
-        online_list
       end
     end
 
     def get_group_info(group_code)
-      json = @api.nil? ? nil : @api.get_group_info(group_code)
+      code, body = @api.get_group_info(group_code)
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
+      if result
         group_info = QQBot::GroupInfo.new
-        ginfo = json['ginfo']
+        ginfo = result['ginfo']
         group_info.id = ginfo['gid']
         group_info.create_time = ginfo['createtime']
         group_info.memo = ginfo['memo']
@@ -397,7 +398,7 @@ module QQBot
 
         member_map = {}
 
-        minfo = json['minfo']
+        minfo = result['minfo']
         minfo.each do |item|
           member = QQBot::GroupMember.new
           member.id = item['uin']
@@ -408,19 +409,19 @@ module QQBot
           member_map[member.id] = member
         end
 
-        cards = json['cards']
+        cards = result['cards']
         cards.each do |item|
           member_map[item['muin']].markname = item['card']
         end
 
-        vipinfo = json['vipinfo']
+        vipinfo = result['vipinfo']
         vipinfo.each do |item|
           member = member_map[item['u']]
           member.is_vip = item['is_vip']
           member.vip_level = item['vip_level']
         end
 
-        stats = json['stats']
+        stats = result['stats']
         stats.each do |item|
           member = member_map[item['uin']]
           member.client_type = item['client_type']
@@ -434,17 +435,18 @@ module QQBot
     end
 
     def get_discuss_info(discuss_id)
-      json = @api.nil? ? nil : @api.get_discuss_info(discuss_id)
+      code, body = @api.get_discuss_info(discuss_id)
+      result = self.class.check_response_json(code, body)
 
-      unless json.nil?
+      if result
         discuss_info = QQBot::DiscussInfo.new
-        info = json['info']
+        info = result['info']
         discuss_info.id = info['did']
         discuss_info.name = info['discu_name']
 
         member_map = {}
 
-        mem_info = json['mem_info']
+        mem_info = result['mem_info']
         mem_info.each do |item|
           member = QQBot::DiscussMember.new
           member.id = item['uin']
@@ -452,7 +454,7 @@ module QQBot
           member_map[member.id] = member
         end
 
-        mem_status = json['mem_status']
+        mem_status = result['mem_status']
         mem_status.each do |item|
           member = member_map[item['uin']]
           member.client_type = item['client_type']

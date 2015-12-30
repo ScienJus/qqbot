@@ -1,5 +1,4 @@
 require 'qqbot/version'
-require 'logger'
 
 module QQBot
 
@@ -7,7 +6,8 @@ module QQBot
   LOGGER.datetime_format = '%Y-%m-%d %H:%M:%S'
   LOGGER.level = Logger::DEBUG
 
-  autoload :Auth, 'qqbot/auth'
+  CLIENT_ID = 53999199
+
   autoload :Cookie, 'qqbot/cookie'
   autoload :Client, 'qqbot/client'
   autoload :Api, 'qqbot/api'
@@ -26,7 +26,7 @@ module QQBot
   autoload :GroupMember, 'qqbot/model'
   autoload :DiscussInfo, 'qqbot/model'
   autoload :DiscussMember, 'qqbot/model'
-  autoload :ERROR, 'qqbot/error'
+  autoload :Error, 'qqbot/error'
 
   def self.new
     QQBot::Bot.new
