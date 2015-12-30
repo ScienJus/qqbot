@@ -1,96 +1,131 @@
 require 'uri'
-require 'json'
-require 'fileutils'
 
 module QQBot
   class Api
 
-    def initialize(client, options = {})
-      @client = client
-      @options = options
+    def initialize
+      @client = QQBot::Client.new
       @msg_id = 1_000_000
+    end
+
+    def auth_options=(options = {})
+      @options = options
+    end
+
+    def get_qrcode
+      uri = URI('https://ssl.ptlogin2.qq.com/ptqrshow');
+      uri.query =
+        URI.encode_www_form(
+          appid: 501004106,
+          e: 0,
+          l: :M,
+          s: 5,
+          d: 72,
+          v: 4,
+          t: 0.1,
+        )
+      @client.get(uri)
+    end
+
+    def verify_qrcode
+      uri = URI('https://ssl.ptlogin2.qq.com/ptqrlogin');
+      uri.query =
+        URI.encode_www_form(
+          webqq_type: 10,
+          remember_uin: 1,
+          login2qq: 1,
+          aid: 501004106,
+          u1: 'http://Fw.qq.com/proxy.html?login2qq=1&webqq_type=10',
+          ptredirect: 0,
+          ptlang: 2052,
+          daid: 164,
+          from_ui: 1,
+          pttype: 1,
+          dumy: '',
+          fp: 'loginerroralert',
+          action: '0-0-157510',
+          mibao_css: 'm_webqq',
+          t: 1,
+          g: 1,
+          js_type: 0,
+          js_ver: 10143,
+          login_sig: '',
+          pt_randsalt: 0,
+        )
+      @client.get(uri)
+    end
+
+    def get_ptwebqq(url)
+      uri = URI(url);
+      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
+      return code, @client.get_cookie('ptwebqq')
+    end
+
+    def get_vfwebqq(ptwebqq)
+      uri = URI('http://s.web2.qq.com/api/getvfwebqq');
+      uri.query =
+        URI.encode_www_form(
+          ptwebqq: ptwebqq,
+          clientid: QQBot::CLIENT_ID,
+          psessionid: '',
+          t: 0.1,
+        )
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
+    end
+
+    def get_psessionid_and_uin(ptwebqq)
+      uri = URI('http://d1.web2.qq.com/channel/login2');
+      r = JSON.generate(
+        ptwebqq: ptwebqq,
+        clientid: QQBot::CLIENT_ID,
+        psessionid: '',
+        status: 'online'
+      )
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def self.hash(uin, ptwebqq)
       n = Array.new(4, 0)
-
-      for i in (0...ptwebqq.size)
-        n[i % 4] ^= ptwebqq[i].ord
-      end
-
+      ptwebqq.chars.each_index { |i| n[i % 4] ^= ptwebqq[i].ord }
       u = ['EC', 'OK']
-
       v = Array.new(4)
       v[0] = uin >> 24 & 255 ^ u[0][0].ord;
       v[1] = uin >> 16 & 255 ^ u[0][1].ord;
       v[2] = uin >> 8 & 255 ^ u[1][0].ord;
       v[3] = uin & 255 ^ u[1][1].ord;
-
       u = Array.new(8)
-      for i in (0...8)
-        u[i] = i.odd? ? v[i >> 1] : n[i >> 1]
-      end
-
+      (0...8).each { |i| u[i] = i.odd? ? v[i >> 1] : n[i >> 1] }
       n = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
-
       v = ''
-
       u.each do |i|
         v << n[(i >> 4) & 15]
         v << n[i & 15]
       end
-
       v
     end
 
     def poll
       uri = URI('http://d1.web2.qq.com/channel/poll2')
-
       r = JSON.generate(
         ptwebqq: @options[:ptwebqq],
-        clientid: 53999199,
+        clientid: QQBot::CLIENT_ID,
         psessionid: @options[:psessionid],
         key: ''
       )
-
       begin
-        code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
+        @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
       rescue
         retry
-      end
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取消息失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
       end
     end
 
     def get_group_list
         uri = URI('http://s.web2.qq.com/api/get_group_name_list_mask2')
-
         r = JSON.generate(
           vfwebqq: @options[:vfwebqq],
           hash: hash
         )
-
-        code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-        if code == '200'
-          json = JSON.parse body
-          if json['retcode'] == 0
-            return json['result']
-          else
-            QQBot::LOGGER.info "获取群列表失败 返回码 #{json['retcode']}"
-          end
-        else
-          QQBot::LOGGER.info "请求失败，返回码 #{code}"
-        end
+        @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def hash
@@ -99,162 +134,75 @@ module QQBot
 
     def get_friend_list
         uri = URI('http://s.web2.qq.com/api/get_user_friends2')
-
         r = JSON.generate(
           vfwebqq: @options[:vfwebqq],
           hash: hash
         )
-
-        code, body = @client.post(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1', r: r)
-
-        if code == '200'
-          json = JSON.parse body
-          if json['retcode'] == 0
-            return json['result']
-          else
-            QQBot::LOGGER.info "获取好友列表失败 返回码 #{json['retcode']}"
-          end
-        else
-          QQBot::LOGGER.info "请求失败，返回码 #{code}"
-        end
+        @client.post(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1', r: r)
     end
 
     def get_discuss_list
         uri = URI('http://s.web2.qq.com/api/get_discus_list')
         uri.query =
           URI.encode_www_form(
-            clientid: 53999199,
+            clientid: QQBot::CLIENT_ID,
             psessionid: @options[:psessionid],
             vfwebqq: @options[:vfwebqq],
             t: 0.1
           )
-
-        code, body = @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
-
-        if code == '200'
-          json = JSON.parse body
-          if json['retcode'] == 0
-            return json['result']
-          else
-            QQBot::LOGGER.info "获取群列表失败 返回码 #{json['retcode']}"
-          end
-        else
-          QQBot::LOGGER.info "请求失败，返回码 #{code}"
-        end
+        @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
     end
 
     def send_to_friend(friend_id, content)
       uri = URI('http://d1.web2.qq.com/channel/send_buddy_msg2')
-
       r = JSON.generate(
         to: friend_id,
-        content: build_message(content),
+        content: self.class.build_message(content),
         face: 522,
-        clientid: 53999199,
+        clientid: QQBot::CLIENT_ID,
         msg_id: msg_id,
         psessionid: @options[:psessionid]
       )
-
-      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-      if code == '200'
-        json = JSON.parse body
-        if json['errCode'] == 0
-          QQBot::LOGGER.info '发送成功'
-          return true
-        else
-          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
-      return false
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def send_to_group(group_id, content)
       uri = URI('http://d1.web2.qq.com/channel/send_qun_msg2')
-
       r = JSON.generate(
         group_uin: group_id,
-        content: build_message(content),
+        content: self.class.build_message(content),
         face: 522,
-        clientid: 53999199,
+        clientid: QQBot::CLIENT_ID,
         msg_id: msg_id,
         psessionid: @options[:psessionid]
       )
-
-      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-      if code == '200'
-        json = JSON.parse body
-        if json['errCode'] == 0
-          QQBot::LOGGER.info '发送成功'
-          return true
-        else
-          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
-      return false
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def send_to_discuss(discuss_id, content)
       uri = URI('http://d1.web2.qq.com/channel/send_discu_msg2')
-
       r = JSON.generate(
         did: discuss_id,
-        content: build_message(content),
+        content: self.class.build_message(content),
         face: 522,
-        clientid: 53999199,
+        clientid: QQBot::CLIENT_ID,
         msg_id: msg_id,
         psessionid: @options[:psessionid]
       )
-
-      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-      if code == '200'
-        json = JSON.parse body
-
-      if json['errCode'] == 0
-          QQBot::LOGGER.info '发送成功'
-          return true
-        else
-          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
-      return false
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def send_to_sess(sess_id, content)
       uri = URI('http://d1.web2.qq.com/channel/send_sess_msg2')
-
       r = JSON.generate(
         to: sess_id,
-        content: build_message(content),
+        content: self.class.build_message(content),
         face: 522,
-        clientid: 53999199,
+        clientid: QQBot::CLIENT_ID,
         msg_id: msg_id,
         psessionid: @options[:psessionid]
       )
-
-      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-      if code == '200'
-        json = JSON.parse body
-
-      if json['errCode'] == 0
-          QQBot::LOGGER.info '发送成功'
-          return true
-        else
-          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
-      return false
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def get_account_info
@@ -264,41 +212,17 @@ module QQBot
           t: 0.1
         )
 
-      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取当前用户信息失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
     end
 
     def get_recent_list
       uri = URI('http://d1.web2.qq.com/channel/get_recent_list2')
-
       r = JSON.generate(
         vfwebqq: @options[:vfwebqq],
-        clientid: 53999199,
+        clientid: QQBot::CLIENT_ID,
         psessionid: ''
       )
-
-      code, body = @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取当前用户信息失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
+      @client.post(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2', r: r)
     end
 
     def get_qq_by_id(id)
@@ -310,19 +234,7 @@ module QQBot
           vfwebqq: @options[:vfwebqq],
           t: 0.1
         )
-
-      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取QQ号失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
     end
 
     def get_online_friends
@@ -330,23 +242,11 @@ module QQBot
       uri.query =
         URI.encode_www_form(
           vfwebqq: @options[:vfwebqq],
-          clientid: 53999199,
+          clientid: QQBot::CLIENT_ID,
           psessionid: @options[:psessionid],
           t: 0.1
         )
-
-      code, body = @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取在线好友失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
+      @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
     end
 
     def get_group_info(group_code)
@@ -357,19 +257,7 @@ module QQBot
           vfwebqq: @options[:vfwebqq],
           t: 0.1
         )
-
-      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取群信息失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
     end
 
     def get_discuss_info(discuss_id)
@@ -378,23 +266,11 @@ module QQBot
         URI.encode_www_form(
           did: discuss_id,
           vfwebqq: @options[:vfwebqq],
-          clientid: 53999199,
+          clientid: QQBot::CLIENT_ID,
           psessionid: @options[:psessionid],
           t: 0.1
         )
-
-      code, body = @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
-
-      if code == '200'
-        json = JSON.parse body
-        if json['retcode'] == 0
-          return json['result']
-        else
-          QQBot::LOGGER.info "获取讨论组信息失败 返回码 #{json['retcode']}"
-        end
-      else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
-      end
+      @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
     end
 
     def hash
@@ -405,7 +281,7 @@ module QQBot
       @msg_id += 1
     end
 
-    def build_message(content)
+    def self.build_message(content)
       JSON.generate(
         [
             content,
