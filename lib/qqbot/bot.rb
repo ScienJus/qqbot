@@ -1,3 +1,5 @@
+require 'json'
+
 module QQBot
   class Bot
     def initialize
@@ -9,11 +11,13 @@ module QQBot
       if code == '200'
         json = JSON.parse body
         if json['retcode'] == 0
-          json['result']
+          return json['result']
+        else
+          QQBot::LOGGER.info "请求失败， JSON返回码 #{json['retcode']}"
         end
-        QQBot::LOGGER.info "请求失败， JSON返回码 #{json['retcode']}"
+      else
+        QQBot::LOGGER.info "请求失败，HTTP返回码#{code} retcode"
       end
-      QQBot::LOGGER.info "请求失败，HTTP返回码#{code} retcode"
     end
 
     def self.check_send_msg_response(code, body)
@@ -87,17 +91,17 @@ module QQBot
     end
 
     def get_ptwebqq(url)
-      code, body = @api.get_ptwebqq url
+      code, ptwebqq = @api.get_ptwebqq url
 
       if code == '302'
-        @client.get_cookie('ptwebqq')
+        ptwebqq
       else
         QQBot::LOGGER.info "请求失败，返回码#{code}"
       end
     end
 
     def get_vfwebqq(ptwebqq)
-      code, body = @api.get_vfwebqq ptwebqq
+      code, body = @api.get_vfwebqq(ptwebqq)
 
       result = self.class.check_response_json(code, body)
       result['vfwebqq'] if result
@@ -107,7 +111,9 @@ module QQBot
       code, body = @api.get_psessionid_and_uin ptwebqq
 
       result = self.class.check_response_json(code, body)
-      result['psessionid'], result['uin'] if result
+      if result
+        return result['psessionid'], result['uin']
+      end
     end
 
     def login
@@ -129,7 +135,7 @@ module QQBot
       raise QQBot::Error::LoginFailed unless vfwebqq
 
       QQBot::LOGGER.info '开始获取psessionid和uin'
-      uin, psessionid = get_psessionid_and_uin ptwebqq
+      psessionid, uin = get_psessionid_and_uin ptwebqq
       raise QQBot::Error::LoginFailed unless uin && psessionid
 
       {
@@ -151,14 +157,10 @@ module QQBot
             value = item['value']
             message.type, message.from_id, message.send_id =
             case item['poll_type']
-            when 'message' then
-              0, value['from_uin'], value['from_uin']
-            when 'group_message' then
-              1, value['from_uin'], value['send_uin']
-            when 'discu_message' then
-              2, value['from_uin'], value['send_uin']
-            else
-              3
+            when 'message' then [0, value['from_uin'], value['from_uin']]
+            when 'group_message' then [1, value['from_uin'], value['send_uin']]
+            when 'discu_message' then [2, value['from_uin'], value['send_uin']]
+            else 3
             end
             message.time = value['time']
             message.content = value['content'][1]

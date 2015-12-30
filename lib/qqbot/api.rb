@@ -1,3 +1,5 @@
+require 'uri'
+
 module QQBot
   class Api
 
@@ -6,7 +8,7 @@ module QQBot
       @msg_id = 1_000_000
     end
 
-    def auth_options(options = {})
+    def auth_options=(options = {})
       @options = options
     end
 
@@ -55,7 +57,8 @@ module QQBot
 
     def get_ptwebqq(url)
       uri = URI(url);
-      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
+      code, body = @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
+      return code, @client.get_cookie('ptwebqq')
     end
 
     def get_vfwebqq(ptwebqq)
@@ -91,7 +94,7 @@ module QQBot
       v[2] = uin >> 8 & 255 ^ u[1][0].ord;
       v[3] = uin & 255 ^ u[1][1].ord;
       u = Array.new(8)
-      (0...8).each_char { |i| u[i] = i.odd? ? v[i >> 1] : n[i >> 1] }
+      (0...8).each { |i| u[i] = i.odd? ? v[i >> 1] : n[i >> 1] }
       n = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
       v = ''
       u.each do |i|

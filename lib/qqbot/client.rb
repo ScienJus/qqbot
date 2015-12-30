@@ -1,6 +1,9 @@
+require 'net/http'
+require 'openssl'
+
 module QQBot
   class Client
-    
+
     @@user_agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36';
 
     def self.origin(uri)
@@ -26,7 +29,7 @@ module QQBot
         res = http.request(req)
         @cookie.put(res.get_fields('set-cookie'))
         QQBot::LOGGER.debug { "code: #{res.code}, body: #{res.body}" }
-        res.code, res.body
+        return res.code, res.body
       end
     end
 
@@ -46,7 +49,7 @@ module QQBot
         res = http.request(req)
         @cookie.put(res.get_fields('set-cookie'))
         QQBot::LOGGER.debug { "response code: #{res.code}, body: #{res.body}" }
-        res.code, res.body
+        return res.code, res.body
       end
     end
 

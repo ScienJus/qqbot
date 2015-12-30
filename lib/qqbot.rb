@@ -1,10 +1,22 @@
+require 'logger'
 require 'qqbot/version'
 
 module QQBot
 
-  LOGGER = Logger.new(STDOUT)
+  class Logger < Logger
+
+    def info(*args)
+      super || false
+    end
+
+    def debug(*args)
+      super || false
+    end
+  end
+
+  LOGGER = QQBot::Logger.new(STDOUT)
   LOGGER.datetime_format = '%Y-%m-%d %H:%M:%S'
-  LOGGER.level = Logger::DEBUG
+  LOGGER.level = Logger::INFO
 
   CLIENT_ID = 53999199
 
