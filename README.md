@@ -17,11 +17,10 @@ require 'qqbot'
 
 qqbot = QQBot.new
 
-qqbot.login
+# 在这里需要扫描二维码登录
 
-qqbot.get_group_list.each { |group| puts group.name }
-
-qqbot.get_friend_list.each do |category|
+# 打印出好友列表
+qqbot.get_friend_list_with_category.each do |category|
   puts category.name
   category.friends.each do |friend|
     puts "———— #{friend.nickname}"
