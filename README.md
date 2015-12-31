@@ -32,10 +32,21 @@ end
 
 [在控制台打印接收到的所有消息][1]
 
-[通过 Tuling123 的 Api 实现自动回复功能][2]
+效果：
+
+![Console][2]
+
+[通过 Tuling123 的 Api 实现自动回复功能][3]
+
+效果：
+
+![Tuling][4]
+
 
 [1]: https://gist.github.com/ScienJus/f1ba1e5b1611cca662cc
-[2]: https://gist.github.com/ScienJus/26a341fda25d009acea1
+[2]: http://www.scienjus.com/wp-content/uploads/2015/12/console.png
+[3]: https://gist.github.com/ScienJus/26a341fda25d009acea1
+[4]: http://www.scienjus.com/wp-content/uploads/2015/12/tuling.jpg
 
 ### Api 列表
 
