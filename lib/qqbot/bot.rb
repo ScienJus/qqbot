@@ -13,10 +13,10 @@ module QQBot
         if json['retcode'] == 0
           return json['result']
         else
-          QQBot::LOGGER.info "请求失败， JSON返回码 #{json['retcode']}"
+          QQBot::LOGGER.info "请求失败，JSON返回码 #{json['retcode']}"
         end
       else
-        QQBot::LOGGER.info "请求失败，HTTP返回码#{code} retcode"
+        QQBot::LOGGER.info "请求失败，HTTP返回码 #{code}"
       end
     end
 
@@ -27,10 +27,10 @@ module QQBot
           QQBot::LOGGER.info '发送成功'
           return true
         else
-          QQBot::LOGGER.info "发送失败 返回码 #{json['retcode']}"
+          QQBot::LOGGER.info "发送失败，JSON返回码 #{json['retcode']}"
         end
       else
-        QQBot::LOGGER.info "请求失败，返回码 #{code}"
+        QQBot::LOGGER.info "请求失败，HTTP返回码 #{code}"
       end
     end
 
