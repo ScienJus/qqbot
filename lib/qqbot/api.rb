@@ -273,6 +273,19 @@ module QQBot
       @client.get(uri, 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2')
     end
 
+    def get_friend_info(friend_id)
+      uri = URI('http://s.web2.qq.com/api/get_friend_info2')
+      uri.query =
+        URI.encode_www_form(
+          tuin: friend_id,
+          vfwebqq: @options[:vfwebqq],
+          clientid: QQBot::CLIENT_ID,
+          psessionid: @options[:psessionid],
+          t: 0.1
+        )
+      @client.get(uri, 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1')
+    end
+
     def hash
       self.class.hash(@options[:uin], @options[:ptwebqq])
     end

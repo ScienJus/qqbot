@@ -30,7 +30,7 @@ module QQBot
   autoload :Discuss, 'qqbot/model'
   autoload :Message, 'qqbot/model'
   autoload :Font, 'qqbot/model'
-  autoload :AccountInfo, 'qqbot/model'
+  autoload :UserInfo, 'qqbot/model'
   autoload :Birthday, 'qqbot/model'
   autoload :Recent, 'qqbot/model'
   autoload :Online, 'qqbot/model'

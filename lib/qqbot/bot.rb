@@ -318,33 +318,47 @@ module QQBot
 
       if result
         # TODO
-        account_info = QQBot::AccountInfo.new
-        account_info.phone = result['phone']
-        account_info.occupation = result['occupation']
-        account_info.college = result['college']
-        account_info.id = result['uin']
-        account_info.blood = result['blood']
-        account_info.slogan = result['lnick']
-        account_info.homepage = result['homepage']
-        account_info.vip_info = result['vip_info']
-        account_info.city = result['city']
-        account_info.country = result['country']
-        account_info.province = result['province']
-        account_info.personal = result['personal']
-        account_info.shengxiao = result['shengxiao']
-        account_info.nickname = result['nick']
-        account_info.email = result['email']
-        account_info.account = result['account']
-        account_info.gender = result['gender']
-        account_info.mobile = result['mobile']
-        birthday = QQBot::Birthday.new
-        birthday.year = result['birthday']['year']
-        birthday.month = result['birthday']['month']
-        birthday.day = result['birthday']['day']
-        account_info.birthday = birthday
-
-        account_info
+        build_user_info(result)
       end
+    end
+
+    def get_friend_info(friend_id)
+      code, body = @api.get_friend_info(friend_id)
+      result = self.class.check_response_json(code, body)
+
+      if result
+        # TODO
+        build_user_info(result)
+      end
+    end
+
+    def build_user_info(result)
+      user_info = QQBot::UserInfo.new
+      user_info.phone = result['phone']
+      user_info.occupation = result['occupation']
+      user_info.college = result['college']
+      user_info.id = result['uin']
+      user_info.blood = result['blood']
+      user_info.slogan = result['lnick']
+      user_info.homepage = result['homepage']
+      user_info.vip_info = result['vip_info']
+      user_info.city = result['city']
+      user_info.country = result['country']
+      user_info.province = result['province']
+      user_info.personal = result['personal']
+      user_info.shengxiao = result['shengxiao']
+      user_info.nickname = result['nick']
+      user_info.email = result['email']
+      user_info.account = result['account']
+      user_info.gender = result['gender']
+      user_info.mobile = result['mobile']
+      birthday = QQBot::Birthday.new
+      birthday.year = result['birthday']['year']
+      birthday.month = result['birthday']['month']
+      birthday.day = result['birthday']['day']
+      user_info.birthday = birthday
+
+      user_info
     end
 
     def get_recent_list

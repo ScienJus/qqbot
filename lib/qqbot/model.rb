@@ -23,7 +23,7 @@ module QQBot
     attr_accessor :color, :name, :size, :style
   end
 
-  class AccountInfo
+  class UserInfo
     attr_accessor :phone, :occupation, :college, :id, :blood, :slogan, :homepage, :vip_info, :city, :country, :province, :personal, :shengxiao, :nickname, :email, :account, :gender, :mobile, :birthday
   end
 

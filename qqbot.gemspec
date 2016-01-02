@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["ScienJus"]
   spec.email         = ["i@scienjus.com"]
 
-  spec.summary       = %q{a qq bot based on smart qq(web qq).}
-  spec.description   = %q{a qq bot based on smart qq api.}
+  spec.summary       = %q{a qq robot based on smart qq api.}
+  spec.description   = %q{a qq robot based on smart qq api.}
   spec.homepage      = "https://github.com/ScienJus/qqbot"
   spec.license       = "MIT"
 
