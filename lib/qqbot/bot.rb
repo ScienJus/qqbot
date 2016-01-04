@@ -10,10 +10,14 @@ module QQBot
     def self.check_response_json(code, body)
       if code == '200'
         json = JSON.parse body
-        if json['retcode'] == 0
+        retcode = json['retcode']
+        if retcode == 0
           return json['result']
+        elsif retcode == 100012
+          QQBot::LOGGER.info '因为掉线此次请求失败，尝试重新登录'
+          @api.auth_options = relogin
         else
-          QQBot::LOGGER.info "请求失败，JSON返回码 #{json['retcode']}"
+          QQBot::LOGGER.info "请求失败，JSON返回码 #{retcode}"
         end
       else
         QQBot::LOGGER.info "请求失败，HTTP返回码 #{code}"
@@ -77,7 +81,6 @@ module QQBot
           end
         else
           QQBot::LOGGER.info "请求失败，返回码#{code}"
-          return
         end
       end
     end
@@ -127,7 +130,7 @@ module QQBot
       close_qrcode_server
 
       QQBot::LOGGER.info '开始获取ptwebqq'
-      ptwebqq = get_ptwebqq url
+      @ptwebqq = get_ptwebqq url
       raise QQBot::Error::LoginFailed unless ptwebqq
 
       QQBot::LOGGER.info '开始获取vfwebqq'
@@ -139,7 +142,24 @@ module QQBot
       raise QQBot::Error::LoginFailed unless uin && psessionid
 
       {
-        ptwebqq: ptwebqq,
+        ptwebqq: @ptwebqq,
+        vfwebqq: vfwebqq,
+        psessionid: psessionid,
+        uin: uin
+      }
+    end
+
+    def relogin
+      QQBot::LOGGER.info '开始获取vfwebqq'
+      vfwebqq = get_vfwebqq ptwebqq
+      raise QQBot::Error::LoginFailed unless vfwebqq
+
+      QQBot::LOGGER.info '开始获取psessionid和uin'
+      psessionid, uin = get_psessionid_and_uin ptwebqq
+      raise QQBot::Error::LoginFailed unless uin && psessionid
+
+      {
+        ptwebqq: @ptwebqq,
         vfwebqq: vfwebqq,
         psessionid: psessionid,
         uin: uin
