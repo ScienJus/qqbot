@@ -131,14 +131,14 @@ module QQBot
 
       QQBot::LOGGER.info '开始获取ptwebqq'
       @ptwebqq = get_ptwebqq url
-      raise QQBot::Error::LoginFailed unless ptwebqq
+      raise QQBot::Error::LoginFailed unless @ptwebqq
 
       QQBot::LOGGER.info '开始获取vfwebqq'
-      vfwebqq = get_vfwebqq ptwebqq
+      vfwebqq = get_vfwebqq @ptwebqq
       raise QQBot::Error::LoginFailed unless vfwebqq
 
       QQBot::LOGGER.info '开始获取psessionid和uin'
-      psessionid, uin = get_psessionid_and_uin ptwebqq
+      psessionid, uin = get_psessionid_and_uin @ptwebqq
       raise QQBot::Error::LoginFailed unless uin && psessionid
 
       {
@@ -151,11 +151,11 @@ module QQBot
 
     def relogin
       QQBot::LOGGER.info '开始获取vfwebqq'
-      vfwebqq = get_vfwebqq ptwebqq
+      vfwebqq = get_vfwebqq @ptwebqq
       raise QQBot::Error::LoginFailed unless vfwebqq
 
       QQBot::LOGGER.info '开始获取psessionid和uin'
-      psessionid, uin = get_psessionid_and_uin ptwebqq
+      psessionid, uin = get_psessionid_and_uin @ptwebqq
       raise QQBot::Error::LoginFailed unless uin && psessionid
 
       {
