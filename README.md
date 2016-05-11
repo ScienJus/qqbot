@@ -2,6 +2,22 @@
 
 基于 Smart QQ（Web QQ）的 QQ 机器人
 
+Java 版本：[ScienJus/smartqq][5]
+
+Api分析：
+
+[Web QQ协议分析（一）：前言][6]
+
+[Web QQ协议分析（二）：登录][7]
+
+[Web QQ协议分析（三）：收发消息][8]
+
+[Web QQ协议分析（四）：好友相关][9]
+
+[Web QQ协议分析（五）：群和讨论组相关][10]
+
+[Web QQ协议分析（六）：其他][11]
+
 ### 使用方法
 
 安装这个 Gem ：
@@ -47,6 +63,13 @@ end
 [2]: http://www.scienjus.com/wp-content/uploads/2015/12/console.png
 [3]: https://gist.github.com/ScienJus/26a341fda25d009acea1
 [4]: http://www.scienjus.com/wp-content/uploads/2015/12/tuling.jpg
+[5]: https://github.com/ScienJus/smartqq
+[6]: http://www.scienjus.com/webqq-analysis-1/
+[7]: http://www.scienjus.com/webqq-analysis-2/
+[8]: http://www.scienjus.com/webqq-analysis-3/
+[9]: http://www.scienjus.com/webqq-analysis-4/
+[10]: http://www.scienjus.com/webqq-analysis-5/
+[11]: http://www.scienjus.com/webqq-analysis-6/
 
 ### Api 列表
 
