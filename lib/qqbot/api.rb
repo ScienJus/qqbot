@@ -27,10 +27,12 @@ module QQBot
       @client.get(uri)
     end
 
+    # webqq 对应js源码 https://imgcache.qq.com/ptlogin/ver/10203/js/mq_comm.js
     def verify_qrcode
       uri = URI('https://ssl.ptlogin2.qq.com/ptqrlogin');
       uri.query =
         URI.encode_www_form(
+          ptqrtoken: get_ptqrtoken,
           webqq_type: 10,
           remember_uin: 1,
           login2qq: 1,
@@ -43,16 +45,32 @@ module QQBot
           pttype: 1,
           dumy: '',
           fp: 'loginerroralert',
-          action: '0-0-157510',
+          # action: '0-0-157510',
+          action: '0-0-12038',
           mibao_css: 'm_webqq',
           t: 1,
           g: 1,
           js_type: 0,
-          js_ver: 10143,
+          # js_ver: 10143,
+          js_ver: 10203,
           login_sig: '',
-          pt_randsalt: 0,
+          pt_randsalt: 2,
         )
       @client.get(uri)
+    end
+
+    def get_ptqrtoken
+      t = @client.cookie['qrsig']
+      e = 0
+      i = 0
+      n = t.length
+
+      while n > i do
+        e += (e << 5) + t[i].ord
+        i += 1
+      end
+
+      return 2147483647 & e
     end
 
     def get_ptwebqq(url)
